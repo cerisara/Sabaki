@@ -26,7 +26,6 @@ const helper = require('../modules/helper')
 const setting = remote.require('./setting')
 const {sgf} = fileformats
 const sound = require('../modules/sound')
-const detson = require('../detson')
 
 class App extends Component {
     constructor() {
@@ -750,10 +749,10 @@ class App extends Component {
         let board = gametree.getBoard(tree, index)
 
         if (typeof vertex == 'string') {
-            detson.detMoveMade(vertex)
+            detMoveMade(vertex)
             vertex = board.coord2vertex(vertex)
         } else {
-            detson.detMoveMade(board.vertex2coord(vertex))
+            detMoveMade(board.vertex2coord(vertex))
         }
 
         let pass = !board.hasVertex(vertex)
