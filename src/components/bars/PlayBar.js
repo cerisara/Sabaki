@@ -5,6 +5,7 @@ const classNames = require('classnames')
 
 const helper = require('../../modules/helper')
 const setting = remote.require('./setting')
+const detson = require('../../detson')
 
 let toggleSetting = key => setting.set(key, !setting.get(key))
 
@@ -20,6 +21,11 @@ class PlayBar extends Component {
                 {
                     label: `About ${sabaki.appName}…`,
                     click: () => shell.openExternal('http://sabaki.yichuanshen.de')
+                },
+                {type: 'separator'},
+                {
+                    label: 'Login to Mastodon',
+                    click: () => detson.detlogin()
                 },
                 {type: 'separator'},
                 {
