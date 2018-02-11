@@ -31,17 +31,21 @@ function detCreds() {
     newinst = prompt("Enter mastodon instance URL","https://framapiaf.org");
     if (newinst!=null) {
       instance = newinst;
-      // TODO save in browser cache
+      // save in browser cache
+      localStorage.detinst=instance;
     }
     newtoken = prompt("Enter your mastodon app access token","");
     if (newtoken!=null) {
       token=newtoken;
-      // TODO save token in browser cache
+      // save token in browser cache
+      localStorage.dettoken=token;
     }
 }
 
 function connect(theUrl, callback, ispost, params) {
   var xmlHttp = new XMLHttpRequest();
+  if (localStorage.dettoken) token=localStorage.dettoken;
+  if (localStorage.detinst) instance=localStorage.detinst;
   xmlHttp.onreadystatechange= function () {
     if (xmlHttp.readyState == XMLHttpRequest.DONE) {
       // TODO check whether connection works with this token
@@ -100,11 +104,9 @@ function detnew() {
 function detsend() {
   if (tgtuser!=="" && gameid!=="" && move!=="") {
     msg = " GAMID "+gameid+" DETMOVE "+move;
-    msg = encodeURI(msg);
     msg = "status=@"+tgtuser+msg;
     msg = msg+"&visibility=direct";
-    alert("dbug" +msg);
-    connect(instance+'/api/v1/statuses"',handleSendMove,true,msg);
+    connect(instance+'/api/v1/statuses',handleSendMove,true,msg);
   } else {
     alert("something wrong - nothing sent "+tgtuser+" "+gamid+" "+move);
   }
