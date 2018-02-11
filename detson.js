@@ -1,7 +1,11 @@
 var token = "";
 var instance = "";
+var tgtuser = "";
+var gameid = "";
+var move = "";
 
 function detMoveMade(s) {
+  move=s;
 }
 
 function detMakeMove(s) {
@@ -36,7 +40,7 @@ function detCreds() {
     }
 }
 
-function connect(theUrl, callback) {
+function connect(theUrl, callback, ispost, params) {
   var xmlHttp = new XMLHttpRequest();
   xmlHttp.onreadystatechange= function () {
     if (xmlHttp.readyState == XMLHttpRequest.DONE) {
@@ -54,9 +58,18 @@ function connect(theUrl, callback) {
       }
     }
   }
-  xmlHttp.open("GET", theUrl, true);
-  xmlHttp.setRequestHeader("Authorization", "Bearer "+token);
-  xmlHttp.send(null);
+  if (params=="") params=null;
+  if (ispost) {
+    xmlHttp.open("POST", theUrl, true);
+    xmlHttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xmlHttp.setRequestHeader("Authorization", "Bearer "+token);
+    xmlHttp.send(params);
+  } else {
+    xmlHttp.open("GET", theUrl, true);
+    xmlHttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xmlHttp.setRequestHeader("Authorization", "Bearer "+token);
+    xmlHttp.send(params);
+  }
 }
 
 function handleNotifications(s) {
@@ -70,6 +83,30 @@ function handleNotifications(s) {
   alert(s);
 }
 
-function detlogin() {
-  connect(instance+'/api/v1/notifications',handleNotifications);
+function handleSendMove(s) {
+  alert(s);
 }
+
+function detlogin() {
+  connect(instance+'/api/v1/notifications',handleNotifications,false,null);
+}
+
+function detnew() {
+  tgtuser = prompt("Enter White player","someone@framapiaf.org");
+  gameid =  ""+Math.floor((Math.random() * 999999) + 1); 
+  alert("play your first omve as Black, and go to menu - send move");
+}
+
+function detsend() {
+  if (tgtuser!=="" && gameid!=="" && move!=="") {
+    msg = " GAMID "+gameid+" DETMOVE "+move;
+    msg = encodeURI(msg);
+    msg = "status=@"+tgtuser+msg;
+    msg = msg+"&visibility=direct";
+    alert("dbug" +msg);
+    connect(instance+'/api/v1/statuses"',handleSendMove,true,msg);
+  } else {
+    alert("something wrong - nothing sent "+tgtuser+" "+gamid+" "+move);
+  }
+}
+

@@ -30,6 +30,14 @@ class PlayBar extends Component {
                     label: 'Get Mastodon moves',
                     click: () => detlogin()
                 },
+                {
+                    label: 'Send Mastodon move',
+                    click: () => detsend()
+                },
+                {
+                    label: 'New Mastodon game',
+                    click: () => detnew()
+                },
                 {type: 'separator'},
                 {
                     label: 'New File',
