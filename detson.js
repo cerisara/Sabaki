@@ -1,11 +1,10 @@
 var token = "";
 var instance = "";
-var tgtuser = "";
-var gameid = "";
-var move = "";
+var game = null;
 
 function detMoveMade(s) {
-  move=s;
+  if (game==null) game=new Game(null);
+  game.addMove(s);
 }
 
 function detMakeMove(s) {
@@ -95,20 +94,39 @@ function detlogin() {
   connect(instance+'/api/v1/notifications',handleNotifications,false,null);
 }
 
+class Game {
+  constructor(opponent) {
+    this.gamid = ""+Math.floor((Math.random() * 999999) + 1);
+    this.tgtuser = opponent;
+    this.moves = [];
+  }
+
+  addMove(s) {
+    // TODO check move is valid ?
+    this.moves.push(s);
+  }
+
+  sendLastMove() {
+    if (this.tgtuser!=="" && this.gamid!=="" && this.moves.length>0) {
+      var msg = " GAMID "+this.gamid+" DETMOVE "+this.moves.length+" "+this.moves[this.moves.length-1];
+      msg = "status=@"+this.tgtuser+msg;
+      msg = msg+"&visibility=direct";
+      connect(instance+'/api/v1/statuses',handleSendMove,true,msg);
+    } else {
+      alert("something wrong - nothing sent "+this.tgtuser+" "+this.gamid+" "+this.moves);
+    }
+  }
+}
+
 function detnew() {
-  tgtuser = prompt("Enter White player","someone@framapiaf.org");
-  gameid =  ""+Math.floor((Math.random() * 999999) + 1); 
-  alert("play your first omve as Black, and go to menu - send move");
+  var opp = prompt("Enter White player","someone@framapiaf.org");
+  game = new Game(opp);
+  alert("play your first move as Black, and go to menu - send move");
 }
 
 function detsend() {
-  if (tgtuser!=="" && gameid!=="" && move!=="") {
-    msg = " GAMID "+gameid+" DETMOVE "+move;
-    msg = "status=@"+tgtuser+msg;
-    msg = msg+"&visibility=direct";
-    connect(instance+'/api/v1/statuses',handleSendMove,true,msg);
-  } else {
-    alert("something wrong - nothing sent "+tgtuser+" "+gamid+" "+move);
+  if (game!=null) {
+    game.sendLastMove();
   }
 }
 
