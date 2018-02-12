@@ -1,10 +1,10 @@
 var token = "";
 var instance = "";
 var game = null;
+var lastmove = "";
 
 function detMoveMade(s) {
-  if (game==null) game=new Game(null);
-  game.addMove(s);
+  lastmove = s;
 }
 
 function detMakeMove(s) {
@@ -76,14 +76,54 @@ function connect(theUrl, callback, ispost, params) {
 }
 
 function handleNotifications(s) {
-  notifs = JSON.parse(s);
-  s=""
+  var notifs = JSON.parse(s);
+  var newgames = []
   for (i=0;i<notifs.length;i++) {
     if (notifs[i]['type']=='mention') {
-      s+=notifs[i]['status']['content']+'\n';
+      var s=notifs[i]['status']['content'];
+      var j=s.indexOf("GAMID ");
+      if (j!==-1) {
+        var k=s.indexOf(" ",j+6);
+        var gamid = s.substring(j+6,k);
+        j=s.indexOf("DETMOVE ");
+        if (j>=0) {
+          k=s.indexOf(" ",j+8);
+          var movnum = int(s.substring(j+8,k));
+          var mov = s.substring(k+1);
+          
+          var oldgame = localStorage.getItem("detgam"+gamid);
+          if (oldgame==null) {
+            if (movnum==1) {
+              // OK, this is the first move of the game; we must create it
+              var g = new Game(notifs[i]['account']['acct']);
+              g.addMove(mov,true);
+              newgames.push(g);
+            } else {
+              alert("game not found in this browser. TODO: rebuilt it from Mastodon");
+            }
+          } else {
+            if (movnum==1) {
+              alert("Error: game already found !");
+            } else {
+              // known game: check the move nb corresponds to the one stored
+              var g = JSON.parse(oldgame);
+              if (g.moves.length==movnum) {
+                g.addMove(mov,true);
+                newgames.push(g);
+              } else {
+                alert("TODO: game not sync "+g.moves.length+" "+movnum);
+              }
+            }
+          }
+        }
+      }
     }
   }
-  alert(s);
+
+  // show all new games one by one
+  for (i=0;i<newgames.length;i++) {
+    newgames.show();
+  }
 }
 
 function handleSendMove(s) {
@@ -101,9 +141,18 @@ class Game {
     this.moves = [];
   }
 
-  addMove(s) {
+  show() {
+    window.sabaki.newFile(false,false,true);
+    for (i=0;i<this.moves.length;i++) {
+      detMakeMove(this.moves[i]);
+    }
+  }
+
+  addMove(s,amoi) {
     // TODO check move is valid ?
     this.moves.push(s);
+    this.me2play = amoi;
+    localStorage.setItem("detgam"+this.gamid,JSON.stringify(this));
   }
 
   sendLastMove() {
@@ -125,7 +174,8 @@ function detnew() {
 }
 
 function detsend() {
-  if (game!=null) {
+  if (game!=null && lastmove!=null) {
+    game.addMove(lastmove,false);
     game.sendLastMove();
   }
 }
