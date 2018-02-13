@@ -2,6 +2,7 @@ var token = "";
 var instance = "";
 var game = null;
 var lastmove = "";
+var newgames = [];
 
 function detMoveMade(s) {
   lastmove = s;
@@ -9,21 +10,6 @@ function detMoveMade(s) {
 
 function detMakeMove(s) {
   window.sabaki.makeMove(s);
-}
-
-function httpGet(theUrl, callback) {
-    var xmlHttp = new XMLHttpRequest();
-    xmlHttp.onreadystatechange = function() { 
-        if (xmlHttp.readyState == XMLHttpRequest.DONE) {
-          if (xmlHttp.status == 200) {
-            callback(xmlHttp.responseText);
-          } else {
-            alert(xmlHttp.responseText);
-          }
-        }
-    }
-    xmlHttp.open("GET", theUrl, true); // true for asynchronous 
-    xmlHttp.send(null);
 }
 
 function detCreds() {
@@ -44,19 +30,18 @@ function detCreds() {
 function connect(theUrl, callback, ispost, params) {
   var xmlHttp = new XMLHttpRequest();
   if (localStorage.dettoken) token=localStorage.dettoken;
-  if (localStorage.detinst) instance=localStorage.detinst;
   xmlHttp.onreadystatechange= function () {
     if (xmlHttp.readyState == XMLHttpRequest.DONE) {
       // TODO check whether connection works with this token
       if (xmlHttp.status == 200) {
-        callback(xmlHttp.responseText);
+        callback(xmlHttp);
       } else {
         errtxt = xmlHttp.status+" "+xmlHttp.responseText;
         if (errtxt.indexOf("access token is invalid")!==-1) {
           alert("token invalid - resetting token");
           token="";
         } else {
-          alert(errtxt);
+          alert("ERR access token "+errtxt+" "+theUrl);
         }
       }
     }
@@ -75,9 +60,9 @@ function connect(theUrl, callback, ispost, params) {
   }
 }
 
-function handleNotifications(s) {
+function handleNotifications(reponse) {
+  s = reponse.responseText;
   var notifs = JSON.parse(s);
-  var newgames = []
   for (i=0;i<notifs.length;i++) {
     if (notifs[i]['type']=='mention') {
       var s=notifs[i]['status']['content'];
@@ -88,10 +73,14 @@ function handleNotifications(s) {
         j=s.indexOf("DETMOVE ");
         if (j>=0) {
           k=s.indexOf(" ",j+8);
-          var movnum = int(s.substring(j+8,k));
-          var mov = s.substring(k+1);
-          
+          var movnum = parseInt(s.substring(j+8,k));
+          // first char is a letter, then 1 or 2 ints
+          var l=k+3;
+          var c=s.substr(l);
+          if (l+1<s.length && c>='0' && c<='9') l=k+4;
+          var mov = s.substring(k+1,l);
           var oldgame = localStorage.getItem("detgam"+gamid);
+          alert("found game move "+mov+" "+gamid+" "+oldgame);
           if (oldgame==null) {
             if (movnum==1) {
               // OK, this is the first move of the game; we must create it
@@ -119,18 +108,36 @@ function handleNotifications(s) {
       }
     }
   }
-
-  // show all new games one by one
-  for (i=0;i<newgames.length;i++) {
-    newgames.show();
+  var nextlink = reponse.getResponseHeader('Link');
+  // TODO for now, I dont look beyond the 15 first notifications
+  if (nextlink!==null && false) {
+    // recursive call to fill in all new games into the global list
+    // TODO: care about rate limits when there are many notifications 
+    var i=nextlink.indexOf('<');
+    if (i>=0) {
+      i=i+1
+      var j=nextlink.indexOf('>',i);
+      if (j>=0) {
+        nextlink=nextlink.substring(i,j);
+      } else {alert("ERROR nextlink "+nextlink);}
+    } else {alert("ERROR nextlink "+nextlink);}
+    connect(nextlink,handleNotifications,false,null);
+  } else {
+    alert("all games found "+newgames.length);
+    // show all new games one by one
+    for (i=0;i<newgames.length;i++) {
+      newgames[i].show();
+    }
+    newgames=[];
   }
 }
 
 function handleSendMove(s) {
-  alert(s);
+  alert("SEND MOVE "+s.responseText);
 }
 
 function detlogin() {
+  if (localStorage.detinst) instance=localStorage.detinst;
   connect(instance+'/api/v1/notifications',handleNotifications,false,null);
 }
 
@@ -143,7 +150,8 @@ class Game {
 
   show() {
     window.sabaki.newFile(false,false,true);
-    for (i=0;i<this.moves.length;i++) {
+    for (var i=0;i<this.moves.length;i++) {
+      alert("make move "+this.moves[i]);
       detMakeMove(this.moves[i]);
     }
   }
@@ -160,6 +168,7 @@ class Game {
       var msg = " GAMID "+this.gamid+" DETMOVE "+this.moves.length+" "+this.moves[this.moves.length-1];
       msg = "status=@"+this.tgtuser+msg;
       msg = msg+"&visibility=direct";
+      if (localStorage.detinst) instance=localStorage.detinst;
       connect(instance+'/api/v1/statuses',handleSendMove,true,msg);
     } else {
       alert("something wrong - nothing sent "+this.tgtuser+" "+this.gamid+" "+this.moves);
@@ -171,6 +180,7 @@ function detnew() {
   var opp = prompt("Enter White player","someone@framapiaf.org");
   game = new Game(opp);
   alert("play your first move as Black, and go to menu - send move");
+  game.show();
 }
 
 function detsend() {
